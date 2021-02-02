@@ -179,7 +179,7 @@ def plot_elf_files(data: Dict[str,NpArray], elf: Dict[str,ELFFile], legend_names
         colorized_data = colorized_data.reshape(h,w,3)
         cax.imshow(colorized_data)
         compiler = elf[f].get_section_by_name(".comment").data().decode("utf-8").strip('\x00')
-        cax.set_title("{} – {}".format(f, compiler))
+        cax.set_title("{}\n[{}]".format(f, compiler))
         cax.legend(legend_colors[f], legend_names[f], loc=(1.04,0))
     mng = fig.canvas.manager
     mng.window.showMaximized()
