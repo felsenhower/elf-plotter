@@ -43,3 +43,7 @@ For example, to compare `gzip` and `touch`, you can do
 ```bash
 $ ./plot-elf.py "$(which touch)" "$(which gzip)"
 ```
+
+which looks something like this:
+
+[![example](example.png)](example.png)
