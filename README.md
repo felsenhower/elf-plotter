@@ -35,5 +35,11 @@ Simply call `plot-elf.py` with a list of ELF files,
 e.g. exexutables or .o files
 
 ```bash
-$ plot-elf.py "/path/to/elffile.o"
+$ ./plot-elf.py "/path/to/elffile.o"
+```
+
+For example, to compare `gzip` and `touch`, you can do
+
+```bash
+$ ./plot-elf.py "$(which touch)" "$(which gzip)"
 ```
