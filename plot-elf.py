@@ -37,12 +37,12 @@ def load_elf_files(filenames: Collection[str]) -> Tuple[Dict[str,NpArray],Dict[s
     for f in filenames:
         with open (f, "rb") as elffile:
             raw_data = elffile.read()
-    try:
-        data[f] = np.frombuffer(raw_data, dtype="uint8")
-        elf[f] = ELFFile(io.BytesIO(raw_data))
-    except ELFError:
-        print("Error: Not a valid ELF file: \"{}\"".format(f))
-        sys.exit(1)
+        try:
+            data[f] = np.frombuffer(raw_data, dtype="uint8")
+            elf[f] = ELFFile(io.BytesIO(raw_data))
+        except ELFError:
+            print("Error: Not a valid ELF file: \"{}\"".format(f))
+            sys.exit(1)
     return data, elf
 
 
