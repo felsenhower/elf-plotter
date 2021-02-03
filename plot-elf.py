@@ -147,9 +147,9 @@ def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOp
 
         bytes = np.stack((bytes,bytes,bytes), axis=1)
 
-        part_names: List[str] = ["Ehdr"]
-        part_offsets: List[int] = [0]
-        part_lengths: List[str] = [elf.header.e_ehsize]
+        part_names = ["Ehdr"]
+        part_offsets = [0]
+        part_lengths = [elf.header.e_ehsize]
         for s in elf.iter_sections():
             part_names.append(s.name)
             part_offsets.append(part_offsets[-1] + part_lengths[-1])
