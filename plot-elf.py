@@ -15,6 +15,7 @@ import sys
 import io
 import os.path
 import re
+import hashlib
 from elftools.common.exceptions import ELFError
 from elftools.elf.elffile import ELFFile
 from elftools.elf.segments import Segment
@@ -91,46 +92,18 @@ def pad_array(array: NpArray, length: int) -> NpArray:
     return result
 
 
-def primes(n: int) -> List[int]:
+def filter_parts(parts: List[str], selected_parts: Collection[str]) -> List[str]:
     """
-    Get the prime factorization of the given number
-    :param n: The number.
-    :return: The prime factorization as a list with repeated factors.
+    Filter the given parts with the filter list supplied.
+    :param parts: The input list.
+    :param selected_parts: A set of strings that may be equal to parts (headers /
+                           sections) to keep or may be a regex enclose in
+                           slashes ("/regex/").
+    :return: The filtered list. If selected parts is empty, everything will be kept.
     """
-    primfac: List[int] = []
-    d = 2
-    while d*d <= n:
-        while (n % d) == 0:
-            primfac.append(d)
-            n //= d
-        d += 1
-    if n > 1:
-       primfac.append(n)
-    return primfac
-
-
-def get_optimal_color_division(num_colors: int) -> int:
-    """
-    For a list of equidistant colors on a continuous spectrum (e.g. hsv or
-    rainbow), get a step width which with to select colors that is approximately
-    1/3 of the number of colors, so that two adjacent colors are probably
-    distinguishable, and which is selected so that the colors are never repeating.
-    :param num_colors: The number of colors.
-    :return: The step width with which to go through the list of colors.
-    """
-    if (num_colors < 7):
-        return 1
-    division = int((num_colors - 1) / 3)
-    while (division < num_colors):
-        if not set(primes(division)).issubset(set(primes(num_colors))):
-            return division
-    return num_colors - 1
-
-
-def filter_parts(parts, selected_parts):
     if len(selected_parts) == 0:
         return parts
-    result = []
+    result: List[str] = []
     for (name,offset,length) in parts:
         for filter in selected_parts:
             if filter.startswith("/") and filter.endswith("/"):
@@ -141,27 +114,20 @@ def filter_parts(parts, selected_parts):
                     result.append((name,offset,length))
     return result
 
-def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOptions]) -> Dict[str,List[Tuple[str,Line2D]]]:
+
+def get_parts(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOptions]) -> Dict[str,List[str]]:
     """
-    Colorize the ELF header, Program Header, Section Header, and various sections
-    (e.g. .text, .date, …) of the given bytes of the ELF Object Code Files with
-    different colors on the HSV spectrum and prepare a legend for the plot.
+    Get a list of parts for all input files.
     :param elf_files: A dict from filename to ElfFileData objects that contains
                       the ELF and byte data.
     :param options: A dict from filename to PlottingOptions objects which
                     determine selected sections and stripping.
-    :return: A dict from filename to the names of the parts of the data and to
-             the Line2D objects containing the colors of the parts of the data.
+    :return: A dict from filename to lists of parts.
     """
-    legend_data: Dict[str,List[Tuple[str,Line2D]]] = dict()
+    result = dict()
     for f in elf_files:
         elf: ELFFile = elf_files[f].elf_data
-        bytes: NpArray = elf_files[f].byte_data
         selected_parts: Set[str] = options[f].selected_parts
-        strip: bool = options[f].strip
-
-        bytes = np.stack((bytes,bytes,bytes), axis=1)
-
         part_names = ["Ehdr"]
         part_offsets = [0]
         part_lengths = [elf.header.e_ehsize]
@@ -172,36 +138,80 @@ def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOp
         part_names.extend(["Phdr", "Shdr"])
         part_offsets.extend([elf.header.e_phoff, elf.header.e_shoff])
         part_lengths.extend([elf.header.e_phentsize, elf.header.e_shentsize])
-
         parts = list(zip(part_names, part_offsets, part_lengths))
         parts = [(name,offset,length) for (name,offset,length) in parts if length > 0]
         parts = filter_parts(parts, selected_parts)
-
-        num_parts = len(parts)
-
-        if num_parts == 0:
+        if len(parts) == 0:
             error("No parts in \"{}\" match selection {}".format(f,selected_parts))
+        result[f] = parts
+    return result
 
-        colors = cm.rainbow(np.linspace(0, 1, num_parts))
-        colors = colors[:,0:3]
 
+num_colors = 3600
+colors = cm.rainbow(np.linspace(0, 1, num_colors))
+colors = colors[:,0:3]
+saved_colors = dict()
+
+def get_color(text: str) -> NpArray:
+    """
+    Get a color for the given text that will always be the same.
+    :param text: The input text.
+    :return: A color as RGB value.
+    """
+    if text in saved_colors:
+        color = saved_colors[text]
+    else:
+        color = colors[int(hashlib.md5(text.encode()).hexdigest(), 16) % num_colors]
+        saved_colors[text] = color
+    return color
+
+
+
+def colorize_data(elf_files: Dict[str,ElfFileData], parts: Dict[str,List[str]]) -> Dict[str,List[Tuple[str,Line2D]]]:
+    """
+    Colorize the ELF header, Program Header, Section Header, and various sections
+    (e.g. .text, .date, …) of the given bytes of the ELF Object Code Files with
+    different colors on the HSV spectrum and prepare a legend for the plot.
+    :param elf_files: A dict from filename to ElfFileData objects that contains
+                      the ELF and byte data.
+    :param parts: A dict from filename to parts to keep.
+    :return: A dict from filename to the names of the parts of the data and to
+             the Line2D objects containing the colors of the parts of the data.
+    """
+    legend_data: Dict[str,List[Tuple[str,Line2D]]] = dict()
+    for f in elf_files:
+        bytes: NpArray = elf_files[f].byte_data
+        bytes = np.stack((bytes,bytes,bytes), axis=1)
+        current_parts = parts[f]
         current_legend_data = []
-        color_division = get_optimal_color_division(num_parts)
-        for i, (name, offset, length) in enumerate(parts):
-            j = (i * color_division) % (num_parts)
-            bytes[offset : offset+length] = (bytes[offset : offset+length] * colors[j]).astype("uint8")
-            current_legend_data.append((name, Line2D([0], [0], color=colors[j], lw=4)))
-
+        for name, offset, length in current_parts:
+            color = get_color(name)
+            bytes[offset : offset+length] = (bytes[offset : offset+length] * color).astype("uint8")
+            current_legend_data.append((name, Line2D([0], [0], color=color, lw=4)))
         legend_data[f] = current_legend_data
+        elf_files[f].byte_data = bytes
+    return legend_data
 
+
+def strip_data(elf_files: Dict[str,ElfFileData], parts: Dict[str,List[str]], options: Dict[str,PlottingOptions]) -> None:
+    """
+    If specified in options, strip away all the parts we don't want to highlight.
+    :param elf_files: A dict from filename to ElfFileData objects that contains
+                      the ELF and byte data.
+    :param parts: A dict from filename to parts to keep.
+    :param options: A dict from filename to PlottingOptions objects which
+                    determine selected sections and stripping.
+    """
+    for f in elf_files:
+        current_parts = parts[f]
+        bytes: NpArray = elf_files[f].byte_data
+        strip: bool = options[f].strip
         if strip:
             stripped_bytes = np.empty((0,3), dtype="uint8")
-            for i, (name, offset, length) in enumerate(parts):
+            for i, (name, offset, length) in enumerate(current_parts):
                 stripped_bytes = np.append(stripped_bytes, bytes[offset : offset+length], axis=0)
             bytes = stripped_bytes
         elf_files[f].byte_data = bytes
-
-    return legend_data
 
 
 def plot_elf_files(elf_files: Dict[str,ElfFileData], legend_data: Dict[str,List[Tuple[str,Line2D]]]) -> None:
@@ -285,9 +295,15 @@ def main() -> None:
     # Load the object code files as bytes and ELF data
     elf_files = load_elf_files(filenames)
 
+    # Get the parts of the file and filter them
+    parts = get_parts(elf_files, options)
+
     # Colorize the data so that the ELF header, .text, .data, … all have
     # different colors.
-    legend_data = colorize_data(elf_files, options)
+    legend_data = colorize_data(elf_files, parts)
+
+    # If necessary, strip away unwanted bytes
+    strip_data(elf_files, parts, options)
 
     # Get the maximum length and pad each array to this value
     max_length = get_max_length([e.byte_data for e in elf_files.values()])
