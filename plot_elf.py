@@ -28,7 +28,7 @@ NpArray = Any
 
 
 class PlottingOptions:
-    selected_parts: Set[str] = None
+    selected_parts: Set[str]
     strip: bool = False
     def __init__(self):
         self.selected_parts = set()
