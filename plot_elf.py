@@ -231,14 +231,22 @@ def plot_elf_files(elf_files: Dict[str,ElfFileData], legend_data: Dict[str,List[
         elf = elf_files[f].elf_data
         cax = ax[i] if num_plots > 1 else ax
         sqrt_len = int(math.sqrt(len(colorized_bytes)))
-        w = int(sqrt_len / math.sqrt(2) / 8) * 8
-        h = int(len(colorized_bytes) / w)
+        w = max(int(sqrt_len / math.sqrt(2) / 8) * 8, 8)
+        h = max(int(len(colorized_bytes) / w), 1)
         colorized_bytes = colorized_bytes[:(w*h)]
         colorized_bytes = colorized_bytes.reshape(h,w,3)
         cax.imshow(colorized_bytes)
         compiler = elf.get_section_by_name(".comment").data().decode("utf-8").strip('\x00')
         cax.set_title("{}\n[{}]".format(f, compiler))
         cax.legend([x[1] for x in legend_data[f]], [x[0] for x in legend_data[f]], loc=(1.04,0))
+        x_stride = int(w / 5 / 8) * 8
+        x = np.arange(20) * x_stride
+        x = np.append(x[x < w - x_stride], w)
+        cax.set_xticks(x)
+        y_stride = int(h / 10 / 8) * 8
+        y = np.arange(20) * y_stride
+        y = np.append(y[y < h - y_stride], h)
+        cax.set_yticks(y)
     mng = fig.canvas.manager
     mng.window.showMaximized()
     plt.show()
