@@ -28,8 +28,10 @@ NpArray = Any
 
 
 class PlottingOptions:
-    selected_parts: Set[str] = set()
+    selected_parts: Set[str] = None
     strip: bool = False
+    def __init__(self):
+        self.selected_parts = set()
 
 
 class ElfFileData:
@@ -275,10 +277,10 @@ def parse_args() -> Dict[str,PlottingOptions]:
                     current_selected_part = arg[1:]
                     current_strip = False
                 if current_filename == "":
-                    global_selected_parts = global_selected_parts.union(set([current_selected_part]))
+                    global_selected_parts.update(set([current_selected_part]))
                     global_strip |= current_strip
                 else:
-                    result[current_filename].selected_parts = result[current_filename].selected_parts.union(set([current_selected_part]))
+                    result[current_filename].selected_parts.update(set([current_selected_part]))
                     result[current_filename].strip |= current_strip
             except:
                 error("Could not parse argument \"{}\"".format(arg))
@@ -291,7 +293,7 @@ def parse_args() -> Dict[str,PlottingOptions]:
             error("Not a valid file: \"{}\"".format(arg))
     if len(global_selected_parts) != 0:
         for filename in result:
-            result[filename].selected_parts = result[filename].selected_parts.union(set(global_selected_parts))
+            result[filename].selected_parts.update(set(global_selected_parts))
             result[filename].strip |= global_strip
     return result
 
