@@ -160,7 +160,7 @@ def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOp
 
         parts = list(zip(part_names, part_offsets, part_lengths))
         parts = [(name,offset,length) for (name,offset,length) in parts if length > 0]
-        if selected_parts != []:
+        if len(selected_parts) != 0:
             parts = [(name,offset,length) for (name,offset,length) in parts if (name in selected_parts)]
 
         num_parts = len(parts)
@@ -253,7 +253,7 @@ def parse_args() -> Dict[str,PlottingOptions]:
             result[current_filename] = PlottingOptions()
         else:
             error("Not a valid file: \"{}\"".format(arg))
-    if global_selected_parts != []:
+    if len(global_selected_parts) != 0:
         for filename in result:
             result[filename].selected_parts.update(set(global_selected_parts))
             result[filename].strip |= global_strip
