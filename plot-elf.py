@@ -164,6 +164,10 @@ def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOp
             parts = [(name,offset,length) for (name,offset,length) in parts if (name in selected_parts)]
 
         num_parts = len(parts)
+
+        if num_parts == 0:
+            error("No parts in \"{}\" match selection {}".format(f,selected_parts))
+
         colors = cm.rainbow(np.linspace(0, 1, num_parts))
         colors = colors[:,0:3]
 
