@@ -13,9 +13,22 @@ and sections, e.g.
 * `.data`,
 * …,
 
-in different colors. The brightness of the pixels is their byte-value, e.g. if `.text` gets the color red in the legend, a pixel with the color `#ff0000` will be `0xff`, and `#000000` will be `0x00`.
+in different colors.
 
-The subplot title is the name of the file, and the file's `.comment` section which conveniently contains some compiler information (at least for `gcc` and `clang`).
+The individual headers and sections will always get the same colors, e.g.
+`.text` will always be displayed in the color `#4ef3cd`.
+
+The brightness of the pixels signifies their byte-value, e.g. for `.text`,
+a value of
+`0xff` will be shown as `#4ef3cd`,
+`0x80` will be shown as `#277a67`, and
+`0x00` will be shown as `#000000`.
+
+You can also choose to only highlight certain parts (headers / sections)
+verbatim or using regex (see [Advanced Examples](#advanced-examples) below).
+
+The subplot title is the name of the file, and the file's `.comment` section
+which conveniently contains some compiler information (at least for `gcc` and `clang`).
 
 ## Dependencies:
 
@@ -31,19 +44,71 @@ $ pip install -r requirements.txt
 
 ## Usage:
 
-Simply call `plot-elf.py` with a list of ELF files,
-e.g. exexutables or .o files
+### Basic Examples:
+
+Simply call `plot_elf.py` with a list of ELF files,
+e.g. exexutables or .o files:
 
 ```bash
-$ ./plot-elf.py "/path/to/elffile.o"
+$ ./plot_elf.py "/path/to/elffile.o"
 ```
 
 For example, to compare `gzip` and `touch`, you can do
 
 ```bash
-$ ./plot-elf.py "$(which touch)" "$(which gzip)"
+$ ./plot_elf.py "$(which touch)" "$(which gzip)"
 ```
 
 which looks something like this:
 
 [![example](example.png)](example.png)
+
+
+### Advanced examples:
+
+You can also specifiy certain parts (headers or sections) that you wish to
+exclusively highlight in the plot. Write a plus sign ("+") and specify a comma-separated list of
+parts you want to highlight. E.g. to only highlight the `.text` section:
+
+```bash
+$ ./plot_elf.py +.text "$(which touch)" "$(which gzip)"
+```
+
+Only highlight `.text` and `.data`:
+
+```bash
+$ ./plot_elf.py +.text,.data "$(which touch)" "$(which gzip)"
+```
+
+If the filter list is the first argument (i.e. before all filenames), it will
+be used on all files.
+Otherwise (i.e. if the filter list comes after a filename), it will be used only
+on that file. E.g., to highlight `which`'s `.data` section, `gzip`'s `.comment`
+section, and the `.text` section of both of them:
+
+```bash
+$ ./plot_elf.py +.text "$(which touch)" +.data "$(which gzip)" +.comment
+```
+
+Use two plusses, if you want to strip away all the bytes that are not highlighted:
+
+```bash
+$ ./plot_elf.py ++.text,.data "$(which touch)" "$(which gzip)"
+```
+
+If the first filter list has a double plus, `plot_elf.py` will behave as if
+every filter list had a double plus.
+
+You can also use regex by enclosing it into two slashes. E.g., to highlight
+`.text` and every section that contains `data` and begins with a dot
+(make sure you use apostrophes!):
+
+```bash
+$ ./plot_elf.py '+.text,/^..*data.*/' "$(which touch)" "$(which gzip)"
+```
+
+Or to **only** show the headers:
+
+```bash
+$ ./plot_elf.py '++/^[^.].*hdr/' "$(which touch)"  "$(which gzip)"
+```
