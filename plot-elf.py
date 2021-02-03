@@ -92,7 +92,7 @@ def pad_array(array: NpArray, length: int) -> NpArray:
     return result
 
 
-def filter_parts(parts: List[str], selected_parts: Collection[str]) -> List[str]:
+def filter_parts(parts: List[Tuple[str,int,int]], selected_parts: Collection[str]) -> List[Tuple[str,int,int]]:
     """
     Filter the given parts with the filter list supplied.
     :param parts: The input list.
@@ -103,7 +103,7 @@ def filter_parts(parts: List[str], selected_parts: Collection[str]) -> List[str]
     """
     if len(selected_parts) == 0:
         return parts
-    result: List[str] = []
+    result: List[Tuple[str,int,int]] = []
     for (name,offset,length) in parts:
         for filter in selected_parts:
             if filter.startswith("/") and filter.endswith("/"):
@@ -115,7 +115,7 @@ def filter_parts(parts: List[str], selected_parts: Collection[str]) -> List[str]
     return result
 
 
-def get_parts(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOptions]) -> Dict[str,List[str]]:
+def get_parts(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOptions]) -> Dict[str, List[Tuple[str, int, int]]]:
     """
     Get a list of parts for all input files.
     :param elf_files: A dict from filename to ElfFileData objects that contains
@@ -148,9 +148,9 @@ def get_parts(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOption
 
 
 num_colors = 3600
-colors = cm.rainbow(np.linspace(0, 1, num_colors))
+colors: NpArray = cm.rainbow(np.linspace(0, 1, num_colors))
 colors = colors[:,0:3]
-saved_colors = dict()
+saved_colors: Dict[str,NpArray] = dict()
 
 def get_color(text: str) -> NpArray:
     """
@@ -167,7 +167,7 @@ def get_color(text: str) -> NpArray:
 
 
 
-def colorize_data(elf_files: Dict[str,ElfFileData], parts: Dict[str,List[str]]) -> Dict[str,List[Tuple[str,Line2D]]]:
+def colorize_data(elf_files: Dict[str,ElfFileData], parts: Dict[str, List[Tuple[str, int, int]]]) -> Dict[str,List[Tuple[str,Line2D]]]:
     """
     Colorize the ELF header, Program Header, Section Header, and various sections
     (e.g. .text, .date, …) of the given bytes of the ELF Object Code Files with
@@ -193,7 +193,7 @@ def colorize_data(elf_files: Dict[str,ElfFileData], parts: Dict[str,List[str]]) 
     return legend_data
 
 
-def strip_data(elf_files: Dict[str,ElfFileData], parts: Dict[str,List[str]], options: Dict[str,PlottingOptions]) -> None:
+def strip_data(elf_files: Dict[str,ElfFileData], parts: Dict[str, List[Tuple[str, int, int]]], options: Dict[str,PlottingOptions]) -> None:
     """
     If specified in options, strip away all the parts we don't want to highlight.
     :param elf_files: A dict from filename to ElfFileData objects that contains
@@ -267,10 +267,10 @@ def parse_args() -> Dict[str,PlottingOptions]:
                     current_selected_parts = arg[1:].split(",")
                     current_strip = False
                 if current_filename == "":
-                    global_selected_parts.update(set(current_selected_parts))
+                    global_selected_parts = global_selected_parts.union(set(current_selected_parts))
                     global_strip |= current_strip
                 else:
-                    result[current_filename].selected_parts.update(set(current_selected_parts))
+                    result[current_filename].selected_parts = result[current_filename].selected_parts.union(set(current_selected_parts))
                     result[current_filename].strip |= current_strip
             except:
                 error("Could not parse the list \"{}\"".format(arg))
@@ -283,7 +283,7 @@ def parse_args() -> Dict[str,PlottingOptions]:
             error("Not a valid file: \"{}\"".format(arg))
     if len(global_selected_parts) != 0:
         for filename in result:
-            result[filename].selected_parts.update(set(global_selected_parts))
+            result[filename].selected_parts = result[filename].selected_parts.union(set(global_selected_parts))
             result[filename].strip |= global_strip
     return result
 
