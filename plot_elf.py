@@ -261,19 +261,19 @@ def parse_args() -> Dict[str,PlottingOptions]:
         if arg.startswith("+"):
             try:
                 if arg.startswith("++"):
-                    current_selected_parts = arg[2:].split(",")
+                    current_selected_part = arg[2:]
                     current_strip = True
                 else:
-                    current_selected_parts = arg[1:].split(",")
+                    current_selected_part = arg[1:]
                     current_strip = False
                 if current_filename == "":
-                    global_selected_parts = global_selected_parts.union(set(current_selected_parts))
+                    global_selected_parts = global_selected_parts.union(set([current_selected_part]))
                     global_strip |= current_strip
                 else:
-                    result[current_filename].selected_parts = result[current_filename].selected_parts.union(set(current_selected_parts))
+                    result[current_filename].selected_parts = result[current_filename].selected_parts.union(set([current_selected_part]))
                     result[current_filename].strip |= current_strip
             except:
-                error("Could not parse the list \"{}\"".format(arg))
+                error("Could not parse argument \"{}\"".format(arg))
         elif os.path.isfile(arg):
             if arg in result:
                 error("Specified filename twice: \"{}\"".format(arg))

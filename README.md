@@ -67,8 +67,8 @@ which looks something like this:
 ### Advanced examples:
 
 You can also specifiy certain parts (headers or sections) that you wish to
-exclusively highlight in the plot. Write a plus sign ("+") and specify a comma-separated list of
-parts you want to highlight. E.g. to only highlight the `.text` section:
+exclusively highlight in the plot. Write a plus sign ("+") and specify the
+part you want to highlight. E.g. to only highlight the `.text` section:
 
 ```bash
 $ ./plot_elf.py +.text "$(which touch)" "$(which gzip)"
@@ -77,7 +77,7 @@ $ ./plot_elf.py +.text "$(which touch)" "$(which gzip)"
 Only highlight `.text` and `.data`:
 
 ```bash
-$ ./plot_elf.py +.text,.data "$(which touch)" "$(which gzip)"
+$ ./plot_elf.py +.text +.data "$(which touch)" "$(which gzip)"
 ```
 
 If the filter list is the first argument (i.e. before all filenames), it will
@@ -93,7 +93,7 @@ $ ./plot_elf.py +.text "$(which touch)" +.data "$(which gzip)" +.comment
 Use two plusses, if you want to strip away all the bytes that are not highlighted:
 
 ```bash
-$ ./plot_elf.py ++.text,.data "$(which touch)" "$(which gzip)"
+$ ./plot_elf.py ++.text +.data "$(which touch)" "$(which gzip)"
 ```
 
 If the first filter list has a double plus, `plot_elf.py` will behave as if
@@ -104,11 +104,11 @@ You can also use regex by enclosing it into two slashes. E.g., to highlight
 (make sure you use apostrophes!):
 
 ```bash
-$ ./plot_elf.py '+.text,/^..*data.*/' "$(which touch)" "$(which gzip)"
+$ ./plot_elf.py +.text +'/^..*data.*/' "$(which touch)" "$(which gzip)"
 ```
 
 Or to **only** show the headers:
 
 ```bash
-$ ./plot_elf.py '++/^[^.].*hdr/' "$(which touch)"  "$(which gzip)"
+$ ./plot_elf.py ++'/^[^.].*hdr/' "$(which touch)"  "$(which gzip)"
 ```
