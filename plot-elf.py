@@ -14,6 +14,7 @@ from matplotlib.lines import Line2D
 import sys
 import io
 import os.path
+import re
 from elftools.common.exceptions import ELFError
 from elftools.elf.elffile import ELFFile
 from elftools.elf.segments import Segment
@@ -126,6 +127,20 @@ def get_optimal_color_division(num_colors: int) -> int:
     return num_colors - 1
 
 
+def filter_parts(parts, selected_parts):
+    if len(selected_parts) == 0:
+        return parts
+    result = []
+    for (name,offset,length) in parts:
+        for filter in selected_parts:
+            if filter.startswith("/") and filter.endswith("/"):
+                if re.match(filter[1:-1], name):
+                    result.append((name,offset,length))
+            else:
+                if filter == name:
+                    result.append((name,offset,length))
+    return result
+
 def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOptions]) -> Dict[str,List[Tuple[str,Line2D]]]:
     """
     Colorize the ELF header, Program Header, Section Header, and various sections
@@ -160,8 +175,7 @@ def colorize_data(elf_files: Dict[str,ElfFileData], options: Dict[str,PlottingOp
 
         parts = list(zip(part_names, part_offsets, part_lengths))
         parts = [(name,offset,length) for (name,offset,length) in parts if length > 0]
-        if len(selected_parts) != 0:
-            parts = [(name,offset,length) for (name,offset,length) in parts if (name in selected_parts)]
+        parts = filter_parts(parts, selected_parts)
 
         num_parts = len(parts)
 
