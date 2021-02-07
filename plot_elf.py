@@ -84,12 +84,12 @@ def get_max_length(arrays: Collection[Collection]) -> int:
 
 def pad_array(array: NpArray, length: int) -> NpArray:
     """
-    Pad the given array to the given length.
+    Pad the given array to the given length and fill the rest with (255,0,255).
     :param array: The array to pad.
     :param length: The length to pad the array to.
     :return: The padded array.
     """
-    result: NpArray = np.zeros((length,3), dtype=array.dtype)
+    result: NpArray = np.ones((length,3), dtype=array.dtype) * (255,0,255)
     result[:len(array)] = array
     return result
 
