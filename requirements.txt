@@ -1,1 +1,3 @@
-pyelftools 
+pyelftools
+numpy
+matplotlib
