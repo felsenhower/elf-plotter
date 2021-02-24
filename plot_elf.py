@@ -216,6 +216,38 @@ def strip_data(elf_files: Dict[str,ElfFileData], parts: Dict[str, List[Tuple[str
         elf_files[f].byte_data = bytes
 
 
+def reshape_data(elf_files: Dict[str,ElfFileData], preferred_width=None) -> None:
+    """
+    Reshape the byte data into rectangular arrays so that we can view them as
+    images.
+    :param elf_files: A dict from filename to ElfFileData objects that contains
+                      the ELF and byte data.
+    :param preferred_width: If specified, we will use this width for all images,
+                            otherweise we'll try to pick a good width automatically.
+    """
+    for f in elf_files:
+        data = elf_files[f].byte_data
+        old_shape = data.shape
+        dimensions = len(old_shape)
+        assert dimensions in [1,2]
+        if dimensions == 1:
+            length = len(data)
+        else:
+            length, channels = old_shape
+        if preferred_width is None:
+            sqrt_len = int(math.sqrt(len(data)))
+            w = max(int(sqrt_len / math.sqrt(2) / 8) * 8, 8)
+        else:
+            w = preferred_width
+        h = max(int(length / w), 1)
+        data = data[:(w*h)]
+        if dimensions == 1:
+            data = data.reshape(h,w)
+        else:
+            data = data.reshape(h,w,channels)
+        elf_files[f].byte_data = data
+
+
 def plot_elf_files(elf_files: Dict[str,ElfFileData], legend_data: Dict[str,List[Tuple[str,Line2D]]]) -> None:
     """
     Plot the given ELF files.
@@ -232,15 +264,11 @@ def plot_elf_files(elf_files: Dict[str,ElfFileData], legend_data: Dict[str,List[
         colorized_bytes = elf_files[f].byte_data
         elf = elf_files[f].elf_data
         cax = ax[i] if num_plots > 1 else ax
-        sqrt_len = int(math.sqrt(len(colorized_bytes)))
-        w = max(int(sqrt_len / math.sqrt(2) / 8) * 8, 8)
-        h = max(int(len(colorized_bytes) / w), 1)
-        colorized_bytes = colorized_bytes[:(w*h)]
-        colorized_bytes = colorized_bytes.reshape(h,w,3)
         cax.imshow(colorized_bytes)
         compiler = elf.get_section_by_name(".comment").data().decode("utf-8").strip('\x00')
         cax.set_title("{}\n[{}]".format(f, compiler))
         cax.legend([x[1] for x in legend_data[f]], [x[0] for x in legend_data[f]], loc=(1.04,0))
+        h,w = np.shape(colorized_bytes)[0:2]
         x_stride = int(w / 5 / 8) * 8
         x = np.arange(20) * x_stride
         x = np.append(x[x < w - x_stride], w)
@@ -319,6 +347,8 @@ def main() -> None:
     max_length = get_max_length([e.byte_data for e in elf_files.values()])
     for f in filenames:
         elf_files[f].byte_data = pad_array(elf_files[f].byte_data, max_length)
+
+    reshape_data(elf_files)
 
     # Plot the arrays.
     plot_elf_files(elf_files, legend_data)
