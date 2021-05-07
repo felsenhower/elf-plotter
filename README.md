@@ -33,6 +33,8 @@ which conveniently contains some compiler information (at least for `gcc` and `c
 ## Dependencies:
 
 * [pyelftools](https://github.com/eliben/pyelftools)
+* matplotlib
+* numpy
 
 ## Installation:
 
